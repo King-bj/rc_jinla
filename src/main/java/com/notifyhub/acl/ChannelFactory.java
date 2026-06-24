@@ -4,12 +4,19 @@ import com.notifyhub.domain.TargetSystem;
 import org.springframework.stereotype.Component;
 
 /**
- * 渠道工厂（骨架占位），完整实现见后续 ACL 提交。
+ * 按目标系统获取发送渠道。
+ * MVP 阶段所有外部系统均通过 HTTP 渠道发送。
  */
 @Component
 public class ChannelFactory {
 
+    private final HttpNotificationChannel httpChannel;
+
+    public ChannelFactory(HttpNotificationChannel httpChannel) {
+        this.httpChannel = httpChannel;
+    }
+
     public NotificationChannel getChannel(TargetSystem targetSystem) {
-        throw new UnsupportedOperationException("ChannelFactory not implemented yet");
+        return httpChannel;
     }
 }
