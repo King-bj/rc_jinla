@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.notifyhub.acl.AbstractNotificationConverter;
 import com.notifyhub.acl.VendorHttpRequest;
 import com.notifyhub.config.NotifyHubProperties;
-import com.notifyhub.dispatcher.NotificationDispatcher;
 import com.notifyhub.domain.NotificationMessage;
 import com.notifyhub.domain.TargetSystem;
 import org.slf4j.Logger;

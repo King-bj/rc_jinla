@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -58,7 +59,7 @@ class NotificationDispatcherTest {
     private NotificationDispatcher dispatcher;
     private NotifyHubProperties properties;
     private ObjectMapper objectMapper;
-
+    private ObjectProvider<NotificationDispatcher> selfProvider;
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
@@ -69,7 +70,8 @@ class NotificationDispatcherTest {
                 converterFactory,
                 channel,
                 properties,
-                objectMapper
+                objectMapper,
+                selfProvider
         );
     }
 

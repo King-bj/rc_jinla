@@ -14,6 +14,7 @@ import com.notifyhub.entity.NotificationTaskEntity;
 import com.notifyhub.repository.NotificationTaskRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,17 +38,20 @@ public class NotificationDispatcher {
     private final NotificationChannel channel;
     private final NotifyHubProperties properties;
     private final ObjectMapper objectMapper;
+    private final ObjectProvider<NotificationDispatcher> selfProvider;
 
     public NotificationDispatcher(NotificationTaskRepository repository,
                                   ConverterFactory converterFactory,
                                   NotificationChannel channel,
                                   NotifyHubProperties properties,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper,
+                                  ObjectProvider<NotificationDispatcher> selfProvider) {
         this.repository = repository;
         this.converterFactory = converterFactory;
         this.channel = channel;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.selfProvider = selfProvider;
     }
 
     /** 定时拉取一批待投递任务并逐条处理 */
@@ -63,7 +67,7 @@ public class NotificationDispatcher {
 
         for (NotificationTaskEntity task : tasks) {
             try {
-                processTask(task);
+                selfProvider.getObject().processTask(task);
             } catch (Exception e) {
                 log.error("Unexpected error dispatching task id={} requestId={}",
                         task.getId(), task.getRequestId(), e);
