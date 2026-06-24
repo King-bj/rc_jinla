@@ -1,7 +1,6 @@
 package com.notifyhub.dispatcher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.notifyhub.acl.ChannelFactory;
 import com.notifyhub.acl.ConverterFactory;
 import com.notifyhub.acl.NotificationChannel;
 import com.notifyhub.acl.NotificationConverter;
@@ -51,13 +50,10 @@ class NotificationDispatcherTest {
     private ConverterFactory converterFactory;
 
     @Mock
-    private ChannelFactory channelFactory;
+    private NotificationChannel channel;
 
     @Mock
     private NotificationConverter converter;
-
-    @Mock
-    private NotificationChannel channel;
 
     private NotificationDispatcher dispatcher;
     private NotifyHubProperties properties;
@@ -71,7 +67,7 @@ class NotificationDispatcherTest {
         dispatcher = new NotificationDispatcher(
                 repository,
                 converterFactory,
-                channelFactory,
+                channel,
                 properties,
                 objectMapper
         );
@@ -175,7 +171,6 @@ class NotificationDispatcherTest {
                 "{\"conversion_event\":\"EVENT_AD\"}"
         );
         when(converterFactory.getConverter(TargetSystem.AD)).thenReturn(converter);
-        when(channelFactory.getChannel(TargetSystem.AD)).thenReturn(channel);
         when(converter.convert(any(NotificationMessage.class))).thenReturn(vendorRequest);
         when(channel.send(vendorRequest)).thenReturn(SendResult.ok(200));
         ArgumentCaptor<VendorHttpRequest> captor = ArgumentCaptor.forClass(VendorHttpRequest.class);
@@ -194,7 +189,6 @@ class NotificationDispatcherTest {
                 "{}"
         );
         when(converterFactory.getConverter(any())).thenReturn(converter);
-        when(channelFactory.getChannel(any())).thenReturn(channel);
         when(converter.convert(any(NotificationMessage.class))).thenReturn(vendorRequest);
         when(channel.send(any())).thenReturn(sendResult);
     }

@@ -2,7 +2,6 @@ package com.notifyhub.dispatcher;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.notifyhub.acl.ChannelFactory;
 import com.notifyhub.acl.ConverterFactory;
 import com.notifyhub.acl.NotificationChannel;
 import com.notifyhub.acl.NotificationConverter;
@@ -35,18 +34,18 @@ public class NotificationDispatcher {
 
     private final NotificationTaskRepository repository;
     private final ConverterFactory converterFactory;
-    private final ChannelFactory channelFactory;
+    private final NotificationChannel channel;
     private final NotifyHubProperties properties;
     private final ObjectMapper objectMapper;
 
     public NotificationDispatcher(NotificationTaskRepository repository,
                                   ConverterFactory converterFactory,
-                                  ChannelFactory channelFactory,
+                                  NotificationChannel channel,
                                   NotifyHubProperties properties,
                                   ObjectMapper objectMapper) {
         this.repository = repository;
         this.converterFactory = converterFactory;
-        this.channelFactory = channelFactory;
+        this.channel = channel;
         this.properties = properties;
         this.objectMapper = objectMapper;
     }
@@ -80,7 +79,6 @@ public class NotificationDispatcher {
     public void processTask(NotificationTaskEntity task) {
         NotificationMessage message = toMessage(task);
         NotificationConverter converter = converterFactory.getConverter(task.getTargetSystem());
-        NotificationChannel channel = channelFactory.getChannel(task.getTargetSystem());
 
         VendorHttpRequest request = converter.convert(message);
         SendResult result = channel.send(request);

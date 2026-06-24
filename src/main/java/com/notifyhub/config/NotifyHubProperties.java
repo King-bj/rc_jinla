@@ -1,5 +1,6 @@
 package com.notifyhub.config;
 
+import com.notifyhub.domain.TargetSystem;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -39,6 +40,15 @@ public class NotifyHubProperties {
 
     public void setChannels(Map<String, ChannelConfig> channels) {
         this.channels = channels;
+    }
+
+    public String getChannelBaseUrl(TargetSystem targetSystem) {
+        String key = targetSystem.name().toLowerCase();
+        ChannelConfig config = channels.get(key);
+        if (config == null || config.getBaseUrl() == null) {
+            throw new IllegalStateException("Missing channel config for: " + key);
+        }
+        return config.getBaseUrl();
     }
 
     /** 调度器相关配置 */

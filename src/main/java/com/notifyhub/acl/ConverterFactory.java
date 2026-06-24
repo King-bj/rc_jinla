@@ -1,12 +1,10 @@
 package com.notifyhub.acl;
 
-import com.notifyhub.acl.ad.AdConverter;
-import com.notifyhub.acl.crm.CrmConverter;
-import com.notifyhub.acl.inventory.InventoryConverter;
 import com.notifyhub.domain.TargetSystem;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,13 +15,14 @@ public class ConverterFactory {
 
     private final Map<TargetSystem, NotificationConverter> converters;
 
-    public ConverterFactory(CrmConverter crmConverter,
-                            AdConverter adConverter,
-                            InventoryConverter inventoryConverter) {
-        converters = new EnumMap<>(TargetSystem.class);
-        converters.put(TargetSystem.CRM, crmConverter);
-        converters.put(TargetSystem.AD, adConverter);
-        converters.put(TargetSystem.INVENTORY, inventoryConverter);
+    public ConverterFactory(List<NotificationConverter> converters) {
+        this.converters = new EnumMap<>(TargetSystem.class);
+        for (NotificationConverter converter : converters) {
+            TargetSystem target = converter.supports();
+            if (this.converters.putIfAbsent(target, converter) != null) {
+                throw new IllegalStateException("Duplicate converter for: " + target);
+            }
+        }
     }
 
     public NotificationConverter getConverter(TargetSystem targetSystem) {

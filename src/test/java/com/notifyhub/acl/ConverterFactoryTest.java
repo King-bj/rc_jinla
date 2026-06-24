@@ -9,6 +9,7 @@ import com.notifyhub.support.TestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,11 +26,11 @@ class ConverterFactoryTest {
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         var properties = TestData.properties();
-        factory = new ConverterFactory(
+        factory = new ConverterFactory(List.of(
                 new CrmConverter(objectMapper, properties),
                 new AdConverter(objectMapper, properties),
                 new InventoryConverter(objectMapper, properties)
-        );
+        ));
     }
 
     /** CRM→/contacts/update，AD→/conversions，INVENTORY→/stock/adjust */

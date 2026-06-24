@@ -1,6 +1,7 @@
 package com.notifyhub.acl;
 
 import com.notifyhub.domain.NotificationMessage;
+import com.notifyhub.domain.TargetSystem;
 
 /**
  * 防腐层：将统一领域消息转换为供应商 HTTP 请求。
@@ -8,4 +9,6 @@ import com.notifyhub.domain.NotificationMessage;
 public interface NotificationConverter {
 
     VendorHttpRequest convert(NotificationMessage message);
+
+    TargetSystem supports();
 }
