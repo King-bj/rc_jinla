@@ -29,7 +29,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -143,20 +142,6 @@ class NotificationDispatcherTest {
 
         verify(channel).send(captor.capture());
         assertEquals("http://ad.test/conversions", captor.getValue().getUrl());
-    }
-
-    @Test
-    void processTask_notImplementedYet_throwsUnsupportedOperation() {
-        NotificationTaskEntity task = taskFor(TargetSystem.CRM, 0);
-        NotificationDispatcher skeleton = new NotificationDispatcher(
-                repository,
-                new ConverterFactory(),
-                new ChannelFactory(),
-                properties,
-                objectMapper
-        );
-
-        assertThrows(UnsupportedOperationException.class, () -> skeleton.processTask(task));
     }
 
     private void stubConvertAndSend(SendResult sendResult) {
