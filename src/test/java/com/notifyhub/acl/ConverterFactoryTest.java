@@ -14,6 +14,9 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+/**
+ * ConverterFactory 路由测试：按 targetSystem 返回对应渠道 Converter。
+ */
 class ConverterFactoryTest {
 
     private ConverterFactory factory;
@@ -29,6 +32,7 @@ class ConverterFactoryTest {
         );
     }
 
+    /** CRM→/contacts/update，AD→/conversions，INVENTORY→/stock/adjust */
     @Test
     void getConverter_returnsConverterPerChannel() {
         assertEquals("/contacts/update",
@@ -50,6 +54,7 @@ class ConverterFactoryTest {
                         .replace("http://inventory.test", ""));
     }
 
+    /** 同一渠道多次获取应返回同一 Converter 实例（Spring 单例） */
     @Test
     void getConverter_sameInstanceForSameChannel() {
         NotificationConverter first = factory.getConverter(TargetSystem.CRM);

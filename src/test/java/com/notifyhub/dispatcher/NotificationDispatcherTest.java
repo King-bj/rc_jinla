@@ -30,13 +30,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 投递调度核心场景测试：Mock Converter/Channel，对齐设计文档时序图。
- * 完整实现提交前 processTask 相关用例预期失败（TDD 红灯）。
+ * 投递调度器单元测试。
+ * <p>
+ * Mock Repository / ConverterFactory / Channel，隔离外部 HTTP 依赖，
+ * 验证设计文档时序图中的轮询、发送、重试与死信分支。
  */
 @ExtendWith(MockitoExtension.class)
 class NotificationDispatcherTest {
@@ -64,7 +67,6 @@ class NotificationDispatcherTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         properties = TestData.properties();
-        when(channelFactory.getChannel(any())).thenReturn(channel);
 
         dispatcher = new NotificationDispatcher(
                 repository,
@@ -75,16 +77,21 @@ class NotificationDispatcherTest {
         );
     }
 
+    /** 时序图 loop：调度器定期拉取 PENDING/FAILED 且到达 nextRetryTime 的任务 */
     @Test
     void dispatch_pollsPendingTasks() {
-        when(repository.findReadyTasks(eq(TaskStatus.PENDING), any(LocalDateTime.class), any(Pageable.class)))
+        when(repository.findReadyTasks(anyList(), any(LocalDateTime.class), any(Pageable.class)))
                 .thenReturn(List.of());
 
         dispatcher.dispatch();
 
-        verify(repository).findReadyTasks(eq(TaskStatus.PENDING), any(LocalDateTime.class), any(Pageable.class));
+        verify(repository).findReadyTasks(
+                eq(List.of(TaskStatus.PENDING, TaskStatus.FAILED)),
+                any(LocalDateTime.class),
+                any(Pageable.class));
     }
 
+    /** 时序图 alt Success：channel 返回 2xx 后任务标记 SUCCESS */
     @Test
     void processTask_sendSuccess_marksSuccess() {
         NotificationTaskEntity task = taskFor(TargetSystem.CRM, 0);
@@ -97,6 +104,7 @@ class NotificationDispatcherTest {
         verify(repository).save(task);
     }
 
+    /** 时序图 alt Failed：首次失败递增 retryCount，按退避间隔设置 nextRetryTime */
     @Test
     void processTask_sendFail_schedulesRetry() {
         NotificationTaskEntity task = taskFor(TargetSystem.CRM, 0);
@@ -104,13 +112,45 @@ class NotificationDispatcherTest {
 
         dispatcher.processTask(task);
 
-        assertEquals(TaskStatus.PENDING, task.getStatus());
+        assertEquals(TaskStatus.FAILED, task.getStatus());
         assertEquals(1, task.getRetryCount());
         assertEquals("CRM unavailable", task.getLastError());
         assertNotNull(task.getNextRetryTime());
         verify(repository).save(task);
     }
 
+    /** 毒消息：无效 payload JSON 计入重试，状态持久化为 FAILED */
+    @Test
+    void dispatch_invalidPayloadJson_schedulesRetry() {
+        NotificationTaskEntity task = TestData.task(TargetSystem.CRM, "EVENT", "not-valid-json", 0);
+        when(repository.findReadyTasks(anyList(), any(LocalDateTime.class), any(Pageable.class)))
+                .thenReturn(List.of(task));
+
+        dispatcher.dispatch();
+
+        assertEquals(TaskStatus.FAILED, task.getStatus());
+        assertEquals(1, task.getRetryCount());
+        assertNotNull(task.getLastError());
+        assertNotNull(task.getNextRetryTime());
+        verify(repository).save(task);
+    }
+
+    /** 毒消息：重试耗尽后进入 DEAD */
+    @Test
+    void dispatch_invalidPayloadJson_marksDeadAfterExhaustedRetries() {
+        NotificationTaskEntity task = TestData.task(TargetSystem.CRM, "EVENT", "not-valid-json", 3);
+        when(repository.findReadyTasks(anyList(), any(LocalDateTime.class), any(Pageable.class)))
+                .thenReturn(List.of(task));
+
+        dispatcher.dispatch();
+
+        assertEquals(TaskStatus.DEAD, task.getStatus());
+        assertEquals(4, task.getRetryCount());
+        assertNull(task.getNextRetryTime());
+        verify(repository).save(task);
+    }
+
+    /** 时序图 retry exhausted：超过 retry-intervals 配置次数后进入 DEAD */
     @Test
     void processTask_exhaustedRetries_marksDead() {
         NotificationTaskEntity task = taskFor(TargetSystem.INVENTORY, 3);
@@ -124,6 +164,7 @@ class NotificationDispatcherTest {
         verify(repository).save(task);
     }
 
+    /** 时序图 DS→CH→EXT：转换后的 VendorHttpRequest 被传入 channel.send */
     @Test
     void processTask_invokesChannelSend() {
         NotificationTaskEntity task = taskFor(TargetSystem.AD, 0);
@@ -134,6 +175,7 @@ class NotificationDispatcherTest {
                 "{\"conversion_event\":\"EVENT_AD\"}"
         );
         when(converterFactory.getConverter(TargetSystem.AD)).thenReturn(converter);
+        when(channelFactory.getChannel(TargetSystem.AD)).thenReturn(channel);
         when(converter.convert(any(NotificationMessage.class))).thenReturn(vendorRequest);
         when(channel.send(vendorRequest)).thenReturn(SendResult.ok(200));
         ArgumentCaptor<VendorHttpRequest> captor = ArgumentCaptor.forClass(VendorHttpRequest.class);
@@ -152,6 +194,7 @@ class NotificationDispatcherTest {
                 "{}"
         );
         when(converterFactory.getConverter(any())).thenReturn(converter);
+        when(channelFactory.getChannel(any())).thenReturn(channel);
         when(converter.convert(any(NotificationMessage.class))).thenReturn(vendorRequest);
         when(channel.send(any())).thenReturn(sendResult);
     }

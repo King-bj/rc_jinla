@@ -15,6 +15,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 通知接入服务单元测试。
+ * <p>
+ * Mock Repository，验证落库、requestId 幂等与 headers 序列化，不依赖真实数据库。
+ */
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
 
@@ -40,6 +46,7 @@ class NotificationServiceTest {
         service = new NotificationService(repository, objectMapper);
     }
 
+    /** 时序图 BS→API→DB：新请求写入 PENDING 任务并返回 ACCEPTED */
     @ParameterizedTest
     @EnumSource(TargetSystem.class)
     void notify_newRequest_persistsPendingTask(TargetSystem targetSystem) {
@@ -66,6 +73,7 @@ class NotificationServiceTest {
         assertEquals(0, saved.getRetryCount());
     }
 
+    /** 幂等：相同 requestId 重复提交直接返回已有任务，不触发 save */
     @Test
     void notify_duplicateRequestId_returnsExistingWithoutSave() {
         NotificationRequest request = requestFor(TargetSystem.CRM, "req-dup");
@@ -82,6 +90,27 @@ class NotificationServiceTest {
         verify(repository, never()).save(any());
     }
 
+    /** 幂等竞态：唯一索引冲突时回读已有任务并返回 */
+    @Test
+    void notify_concurrentDuplicateRequestId_returnsExisting() {
+        NotificationRequest request = requestFor(TargetSystem.CRM, "req-race");
+        NotificationTaskEntity existing = new NotificationTaskEntity();
+        existing.setId(42L);
+        existing.setRequestId("req-race");
+        existing.setStatus(TaskStatus.PENDING);
+        when(repository.findByRequestId("req-race"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(existing));
+        when(repository.save(any())).thenThrow(new DataIntegrityViolationException("duplicate request_id"));
+
+        NotificationResponse response = service.notify(request);
+
+        assertEquals(42L, response.getTaskId());
+        assertEquals("req-race", response.getRequestId());
+        assertEquals(TaskStatus.PENDING.name(), response.getStatus());
+    }
+
+    /** 可选 headers 以 JSON 字符串持久化到任务表 */
     @Test
     void notify_withHeaders_persistsHeadersJson() {
         NotificationRequest request = requestFor(TargetSystem.AD, "req-headers");

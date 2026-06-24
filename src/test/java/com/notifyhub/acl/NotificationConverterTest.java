@@ -20,6 +20,12 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * 防腐层 Converter 参数化测试。
+ * <p>
+ * 验证 CRM / AD / INVENTORY 三渠道在 URL、Body 字段名、payload 映射上的差异，
+ * 以及业务自定义 Header 的透传合并。
+ */
 class NotificationConverterTest {
 
     private ObjectMapper objectMapper;
@@ -37,6 +43,7 @@ class NotificationConverterTest {
         inventoryConverter = new InventoryConverter(objectMapper, properties);
     }
 
+    /** 各渠道转换用例：事件类型、payload、目标 URL 与 Body 字段名 */
     static Stream<Arguments> channelConversionCases() {
         return Stream.of(
                 Arguments.of(
@@ -66,6 +73,7 @@ class NotificationConverterTest {
         );
     }
 
+    /** 同一领域消息在不同渠道产出不同的 HTTP 请求结构与路径 */
     @ParameterizedTest
     @MethodSource("channelConversionCases")
     void convert_buildsChannelSpecificRequest(TargetSystem targetSystem,
@@ -88,6 +96,7 @@ class NotificationConverterTest {
         assertEquals(objectMapper.valueToTree(payload), body.get(payloadField));
     }
 
+    /** 业务 headers 与默认 Content-Type 合并，不覆盖彼此 */
     @ParameterizedTest
     @MethodSource("channelConversionCases")
     void convert_mergesCustomHeaders(TargetSystem targetSystem,

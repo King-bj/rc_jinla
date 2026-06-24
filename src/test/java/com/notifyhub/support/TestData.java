@@ -11,11 +11,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 测试数据工厂：构造各渠道配置、领域消息与待投递任务实体。
+ */
 public final class TestData {
 
     private TestData() {
     }
 
+    /** 三渠道 baseUrl + 重试间隔（1/5/30 分钟，便于死信场景断言） */
     public static NotifyHubProperties properties() {
         NotifyHubProperties properties = new NotifyHubProperties();
         properties.setRetryIntervalsMinutes(List.of(1, 5, 30));
@@ -35,6 +39,7 @@ public final class TestData {
         return properties;
     }
 
+    /** 构造统一领域消息，供 Converter 测试使用 */
     public static NotificationMessage message(TargetSystem targetSystem,
                                                 String eventType,
                                                 Map<String, Object> payload,
@@ -49,6 +54,7 @@ public final class TestData {
         return message;
     }
 
+    /** 构造 PENDING 状态任务，供调度器测试使用；retryCount 可模拟已重试次数 */
     public static NotificationTaskEntity task(TargetSystem targetSystem,
                                               String eventType,
                                               String payloadJson,
