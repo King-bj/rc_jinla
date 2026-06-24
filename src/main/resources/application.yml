@@ -1,0 +1,71 @@
+# =============================================================================
+# Notify Hub 应用配置
+# =============================================================================
+
+# HTTP 服务端口
+server:
+  port: 8080
+
+spring:
+  application:
+    name: notify-hub
+
+  # ---------------------------------------------------------------------------
+  # MySQL 数据源（本地消息表，保证 At Least Once 投递）
+  # ---------------------------------------------------------------------------
+  datasource:
+    # 数据库连接地址；需提前创建 notify_hub 库
+    url: jdbc:mysql://localhost:3306/notify_hub?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: root
+    password: xxxx
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # ---------------------------------------------------------------------------
+  # JPA / Hibernate
+  # ---------------------------------------------------------------------------
+  jpa:
+    hibernate:
+      # MVP 使用 update 自动建表/更新表结构；生产环境建议改为 validate + 迁移脚本
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+# =============================================================================
+# 通知中枢业务配置（绑定 NotifyHubProperties）
+# =============================================================================
+notify-hub:
+
+  # 异步投递调度器
+  dispatcher:
+    # 每轮调度完成后的等待间隔（毫秒），默认 10 秒
+    interval-ms: 10000
+    # 每批从数据库拉取的最大 PENDING 任务数
+    batch-size: 50
+
+  # 失败重试退避间隔（分钟），逗号分隔
+  # 列表长度 = 最大重试次数；第 N 次失败后取第 N 个值作为下次投递等待时间
+  # 示例：1,5,30,60,360 表示最多重试 5 次，超出后标记 DEAD（死信）
+  retry-intervals-minutes: 1,1,1,1,1
+
+  # 外部供应商 API 根地址（防腐层 Converter 在此基础上拼接路径）
+  channels:
+    # CRM：转换后请求 POST {base-url}/contacts/update
+    crm:
+      base-url: http://localhost:18081
+    # 广告系统：转换后请求 POST {base-url}/conversions
+    ad:
+      base-url: http://localhost:18082
+    # 库存系统：转换后请求 POST {base-url}/stock/adjust
+    inventory:
+      base-url: http://localhost:18083
+
+# =============================================================================
+# 日志
+# =============================================================================
+logging:
+  level:
+    # 本应用包日志级别；投递成功/失败/重试/死信见 NotificationDispatcher
+    com.notifyhub: INFO
