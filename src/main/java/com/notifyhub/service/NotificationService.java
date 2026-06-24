@@ -7,6 +7,7 @@ import com.notifyhub.api.dto.NotificationResponse;
 import com.notifyhub.domain.TaskStatus;
 import com.notifyhub.entity.NotificationTaskEntity;
 import com.notifyhub.repository.NotificationTaskRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,8 +56,14 @@ public class NotificationService {
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
 
-        NotificationTaskEntity saved = repository.save(task);
-        return toResponse(saved);
+        try {
+            NotificationTaskEntity saved = repository.save(task);
+            return toResponse(saved);
+        } catch (DataIntegrityViolationException e) {
+            return repository.findByRequestId(request.getRequestId())
+                    .map(this::toResponse)
+                    .orElseThrow(() -> e);
+        }
     }
 
     private NotificationResponse toResponse(NotificationTaskEntity task) {

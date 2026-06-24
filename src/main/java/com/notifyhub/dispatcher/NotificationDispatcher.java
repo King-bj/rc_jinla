@@ -31,6 +31,7 @@ import java.util.Map;
 public class NotificationDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationDispatcher.class);
+    private static final List<TaskStatus> READY_STATUSES = List.of(TaskStatus.PENDING, TaskStatus.FAILED);
 
     private final NotificationTaskRepository repository;
     private final ConverterFactory converterFactory;
@@ -56,7 +57,7 @@ public class NotificationDispatcher {
         LocalDateTime now = LocalDateTime.now();
         int batchSize = properties.getDispatcher().getBatchSize();
         List<NotificationTaskEntity> tasks = repository.findReadyTasks(
-                TaskStatus.PENDING,
+                READY_STATUSES,
                 now,
                 PageRequest.of(0, batchSize)
         );
@@ -67,6 +68,7 @@ public class NotificationDispatcher {
             } catch (Exception e) {
                 log.error("Unexpected error dispatching task id={} requestId={}",
                         task.getId(), task.getRequestId(), e);
+                handleFailure(task, SendResult.fail(-1, e.getMessage()), LocalDateTime.now());
             }
         }
     }
@@ -111,13 +113,13 @@ public class NotificationDispatcher {
             task.setStatus(TaskStatus.DEAD);
             task.setNextRetryTime(null);
             repository.save(task);
-            log.warn("Notification dead requestId={} target={} retries={}",
+            log.error("Notification dead requestId={} target={} retries={}",
                     task.getRequestId(), task.getTargetSystem(), nextRetryCount);
+            //TODO 整合推送邮箱/飞书等内部通讯软件
             return;
         }
 
         int delayMinutes = intervals.get(nextRetryCount - 1);
-        task.setStatus(TaskStatus.PENDING);
         task.setNextRetryTime(now.plusMinutes(delayMinutes));
         repository.save(task);
         log.warn("Notification failed requestId={} target={} retry={} nextRetryInMin={} error={}",
