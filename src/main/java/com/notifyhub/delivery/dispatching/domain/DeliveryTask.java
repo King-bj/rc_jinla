@@ -88,6 +88,12 @@ public final class DeliveryTask {
         leaseUntil = null;
     }
 
+    public synchronized void replay() {
+        transitionTo(TaskStatus.QUEUED);
+        nextAttemptAt = null;
+        leaseUntil = null;
+    }
+
     public synchronized void skip() {
         if (status != TaskStatus.SKIPPED) {
             transitionTo(TaskStatus.SKIPPED);
@@ -151,7 +157,7 @@ public final class DeliveryTask {
                 TaskStatus.SUCCEEDED, TaskStatus.RETRY_WAIT, TaskStatus.DEAD, TaskStatus.SKIPPED));
         transitions.put(TaskStatus.RETRY_WAIT, EnumSet.of(TaskStatus.SENDING, TaskStatus.SKIPPED));
         transitions.put(TaskStatus.SUCCEEDED, EnumSet.noneOf(TaskStatus.class));
-        transitions.put(TaskStatus.DEAD, EnumSet.noneOf(TaskStatus.class));
+        transitions.put(TaskStatus.DEAD, EnumSet.of(TaskStatus.QUEUED));
         transitions.put(TaskStatus.SKIPPED, EnumSet.noneOf(TaskStatus.class));
         return transitions;
     }
