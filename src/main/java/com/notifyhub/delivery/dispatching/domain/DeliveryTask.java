@@ -1,7 +1,10 @@
 package com.notifyhub.delivery.dispatching.domain;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,6 +14,11 @@ public final class DeliveryTask {
     private static final Map<TaskStatus, Set<TaskStatus>> ALLOWED = allowed();
 
     private TaskStatus status;
+    private String destinationId;
+    private long configVersion;
+    private IdempotencyKey idempotencyKey;
+    private int failureCount;
+    private Instant nextAttemptAt;
 
     public DeliveryTask(TaskStatus status) {
         if (status == null) {
@@ -19,8 +27,53 @@ public final class DeliveryTask {
         this.status = status;
     }
 
+    public static DeliveryTask queued(String tenantId, String eventId, String destinationId, long configVersion) {
+        DeliveryTask task = new DeliveryTask(TaskStatus.QUEUED);
+        task.destinationId = destinationId;
+        task.configVersion = configVersion;
+        task.idempotencyKey = IdempotencyKey.of(tenantId, eventId, destinationId);
+        return task;
+    }
+
     public TaskStatus status() {
         return status;
+    }
+
+    public String destinationId() {
+        return destinationId;
+    }
+
+    public long configVersion() {
+        return configVersion;
+    }
+
+    public IdempotencyKey idempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public int failureCount() {
+        return failureCount;
+    }
+
+    public Instant nextAttemptAt() {
+        return nextAttemptAt;
+    }
+
+    /**
+     * 记录一次可重试失败。间隔用完之前进入 RETRY_WAIT，用完之后进入 DEAD。
+     * 调用时任务必须处于 SENDING。
+     */
+    public void recordRetryableFailure(List<Duration> intervals, Instant now) {
+        int nextCount = failureCount + 1;
+        if (nextCount > intervals.size()) {
+            transitionTo(TaskStatus.DEAD);
+            failureCount = nextCount;
+            nextAttemptAt = null;
+            return;
+        }
+        transitionTo(TaskStatus.RETRY_WAIT);
+        failureCount = nextCount;
+        nextAttemptAt = now.plus(intervals.get(nextCount - 1));
     }
 
     public void transitionTo(TaskStatus next) {
