@@ -88,6 +88,22 @@ public final class DeliveryTask {
         leaseUntil = null;
     }
 
+    public synchronized void skip() {
+        if (status != TaskStatus.SKIPPED) {
+            transitionTo(TaskStatus.SKIPPED);
+        }
+        nextAttemptAt = null;
+        leaseUntil = null;
+    }
+
+    public synchronized void defer(Instant when) {
+        if (status != TaskStatus.RETRY_WAIT) {
+            transitionTo(TaskStatus.RETRY_WAIT);
+        }
+        nextAttemptAt = when;
+        leaseUntil = null;
+    }
+
     /**
      * 记录一次可重试失败。间隔用完之前进入 RETRY_WAIT，用完之后进入 DEAD。
      * 调用时任务必须处于 SENDING。
@@ -130,10 +146,10 @@ public final class DeliveryTask {
 
     private static Map<TaskStatus, Set<TaskStatus>> allowed() {
         Map<TaskStatus, Set<TaskStatus>> transitions = new EnumMap<>(TaskStatus.class);
-        transitions.put(TaskStatus.QUEUED, EnumSet.of(TaskStatus.SENDING));
+        transitions.put(TaskStatus.QUEUED, EnumSet.of(TaskStatus.SENDING, TaskStatus.SKIPPED, TaskStatus.RETRY_WAIT));
         transitions.put(TaskStatus.SENDING, EnumSet.of(
                 TaskStatus.SUCCEEDED, TaskStatus.RETRY_WAIT, TaskStatus.DEAD, TaskStatus.SKIPPED));
-        transitions.put(TaskStatus.RETRY_WAIT, EnumSet.of(TaskStatus.SENDING));
+        transitions.put(TaskStatus.RETRY_WAIT, EnumSet.of(TaskStatus.SENDING, TaskStatus.SKIPPED));
         transitions.put(TaskStatus.SUCCEEDED, EnumSet.noneOf(TaskStatus.class));
         transitions.put(TaskStatus.DEAD, EnumSet.noneOf(TaskStatus.class));
         transitions.put(TaskStatus.SKIPPED, EnumSet.noneOf(TaskStatus.class));
