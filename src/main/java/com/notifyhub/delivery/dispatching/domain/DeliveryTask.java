@@ -19,6 +19,7 @@ public final class DeliveryTask {
     private IdempotencyKey idempotencyKey;
     private int failureCount;
     private Instant nextAttemptAt;
+    private Instant leaseUntil;
 
     public DeliveryTask(TaskStatus status) {
         if (status == null) {
@@ -59,24 +60,67 @@ public final class DeliveryTask {
         return nextAttemptAt;
     }
 
+    public Instant leaseUntil() {
+        return leaseUntil;
+    }
+
+    /** 条件认领。已有未过期租约时返回 false，调用方不能再发送。 */
+    public synchronized boolean claim(Instant now, Duration lease) {
+        if (!canClaim(now)) {
+            return false;
+        }
+        if (status != TaskStatus.SENDING) {
+            transitionTo(TaskStatus.SENDING);
+        }
+        leaseUntil = now.plus(lease);
+        return true;
+    }
+
+    public synchronized void markSucceeded() {
+        transitionTo(TaskStatus.SUCCEEDED);
+        nextAttemptAt = null;
+        leaseUntil = null;
+    }
+
+    public synchronized void recordTerminalFailure() {
+        transitionTo(TaskStatus.DEAD);
+        nextAttemptAt = null;
+        leaseUntil = null;
+    }
+
     /**
      * 记录一次可重试失败。间隔用完之前进入 RETRY_WAIT，用完之后进入 DEAD。
      * 调用时任务必须处于 SENDING。
      */
-    public void recordRetryableFailure(List<Duration> intervals, Instant now) {
+    public synchronized void recordRetryableFailure(List<Duration> intervals, Instant now) {
         int nextCount = failureCount + 1;
         if (nextCount > intervals.size()) {
             transitionTo(TaskStatus.DEAD);
             failureCount = nextCount;
             nextAttemptAt = null;
+            leaseUntil = null;
             return;
         }
         transitionTo(TaskStatus.RETRY_WAIT);
         failureCount = nextCount;
         nextAttemptAt = now.plus(intervals.get(nextCount - 1));
+        leaseUntil = null;
     }
 
-    public void transitionTo(TaskStatus next) {
+    private boolean canClaim(Instant now) {
+        if (status == TaskStatus.QUEUED) {
+            return true;
+        }
+        if (status == TaskStatus.RETRY_WAIT) {
+            return nextAttemptAt == null || !nextAttemptAt.isAfter(now);
+        }
+        if (status == TaskStatus.SENDING) {
+            return leaseUntil == null || !leaseUntil.isAfter(now);
+        }
+        return false;
+    }
+
+    public synchronized void transitionTo(TaskStatus next) {
         Set<TaskStatus> allowed = ALLOWED.get(status);
         if (next == null || allowed == null || !allowed.contains(next)) {
             throw new IllegalStateException("Cannot transition from " + status + " to " + next);
