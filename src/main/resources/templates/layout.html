@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <title th:text="${title}">Notify Hub</title>
+    <meta th:if="${refreshSeconds != null}" http-equiv="refresh" th:content="${refreshSeconds}"/>
+    <link rel="stylesheet" th:href="@{/admin.css}"/>
+</head>
+<body>
+<nav th:fragment="nav">
+    <a th:href="@{/vendors}">供应商</a>
+    <a th:href="@{/tasks}">任务</a>
+    <a th:href="@{/notifications/new}">手工提交</a>
+</nav>
+<div th:fragment="messages">
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+    <p class="ok" th:if="${message}" th:text="${message}"></p>
+</div>
+<span th:fragment="statusBadge(code)" th:class="'badge badge-' + ${code}" th:switch="${code}">
+    <th:block th:case="'PENDING'">待投递</th:block>
+    <th:block th:case="'SUCCESS'">成功</th:block>
+    <th:block th:case="'FAILED'">失败重试</th:block>
+    <th:block th:case="'DEAD'">死信</th:block>
+    <th:block th:case="*">未知</th:block>
+</span>
+</body>
+</html>

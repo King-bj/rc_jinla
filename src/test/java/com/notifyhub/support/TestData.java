@@ -2,7 +2,6 @@ package com.notifyhub.support;
 
 import com.notifyhub.config.NotifyHubProperties;
 import com.notifyhub.domain.NotificationMessage;
-import com.notifyhub.domain.TargetSystem;
 import com.notifyhub.domain.TaskStatus;
 import com.notifyhub.entity.NotificationTaskEntity;
 
@@ -39,11 +38,11 @@ public final class TestData {
         return properties;
     }
 
-    /** 构造统一领域消息，供 Converter 测试使用 */
-    public static NotificationMessage message(TargetSystem targetSystem,
-                                                String eventType,
-                                                Map<String, Object> payload,
-                                                Map<String, String> headers) {
+    /** 构造统一领域消息，供模板渲染测试使用 */
+    public static NotificationMessage message(String targetSystem,
+                                              String eventType,
+                                              Map<String, Object> payload,
+                                              Map<String, String> headers) {
         NotificationMessage message = new NotificationMessage();
         message.setRequestId("req-test");
         message.setTargetSystem(targetSystem);
@@ -55,14 +54,14 @@ public final class TestData {
     }
 
     /** 构造 PENDING 状态任务，供调度器测试使用；retryCount 可模拟已重试次数 */
-    public static NotificationTaskEntity task(TargetSystem targetSystem,
+    public static NotificationTaskEntity task(String targetSystem,
                                               String eventType,
                                               String payloadJson,
                                               int retryCount) {
         LocalDateTime now = LocalDateTime.of(2026, 6, 24, 12, 0);
         NotificationTaskEntity task = new NotificationTaskEntity();
         task.setId(1L);
-        task.setRequestId("req-" + targetSystem.name().toLowerCase());
+        task.setRequestId("req-" + targetSystem.toLowerCase());
         task.setTargetSystem(targetSystem);
         task.setEventType(eventType);
         task.setPriority(1);

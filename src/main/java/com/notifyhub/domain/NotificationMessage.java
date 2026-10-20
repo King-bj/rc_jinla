@@ -10,8 +10,8 @@ public class NotificationMessage {
 
     /** 业务幂等键，全局唯一 */
     private String requestId;
-    /** 目标外部系统 */
-    private TargetSystem targetSystem;
+    /** 供应商编码 */
+    private String targetSystem;
     /** 业务事件类型，如 PAYMENT_SUCCESS */
     private String eventType;
     /** 优先级（MVP 预留字段，暂未参与调度） */
@@ -29,11 +29,11 @@ public class NotificationMessage {
         this.requestId = requestId;
     }
 
-    public TargetSystem getTargetSystem() {
+    public String getTargetSystem() {
         return targetSystem;
     }
 
-    public void setTargetSystem(TargetSystem targetSystem) {
+    public void setTargetSystem(String targetSystem) {
         this.targetSystem = targetSystem;
     }
 

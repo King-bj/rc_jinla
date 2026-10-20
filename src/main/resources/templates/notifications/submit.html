@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('手工提交')}"></head>
+<body>
+<nav th:replace="~{layout :: nav}"></nav>
+<main>
+    <h1>手工提交</h1>
+    <div th:replace="~{layout :: messages}"></div>
+    <p class="hint">提交后进入待投递，由调度器异步发送。供应商地址指向本机 /mock/ 时会返回成功。</p>
+    <p class="ok" th:if="${result != null}">
+        已受理。
+        <a th:href="@{/tasks/{id}(id=${result.taskId})}">查看任务 <span th:text="${result.taskId}">1</span></a>
+    </p>
+    <form class="card" th:object="${form}" method="post" th:action="@{/notifications/new}">
+        <label>请求号
+            <input type="text" th:field="*{requestId}" required="required"/>
+            <span class="field-help">同一请求号重复提交会返回已有任务。</span>
+        </label>
+        <label>供应商
+            <select th:field="*{targetSystem}" required="required">
+                <option value="">请选择</option>
+                <option th:each="vendor : ${vendors}" th:value="${vendor.code}" th:text="${vendor.name + '（' + vendor.code + '）'}">CRM</option>
+            </select>
+        </label>
+        <label>事件
+            <input type="text" th:field="*{eventType}" required="required"/>
+            <span class="field-help">写入模板里的 {{eventType}}。</span>
+        </label>
+        <label>优先级
+            <input type="number" th:field="*{priority}"/>
+        </label>
+        <label>业务报文
+            <textarea th:field="*{payloadJson}" rows="6" required="required"></textarea>
+            <span class="field-help">JSON 对象，对应模板里的 {{payload}}。</span>
+        </label>
+        <label>请求头（可选 JSON）
+            <textarea th:field="*{headersJson}" rows="3"></textarea>
+        </label>
+        <p class="actions">
+            <button type="submit">提交</button>
+        </p>
+    </form>
+</main>
+</body>
+</html>

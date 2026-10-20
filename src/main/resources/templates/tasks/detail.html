@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('任务详情')}"></head>
+<body>
+<nav th:replace="~{layout :: nav}"></nav>
+<main>
+    <h1>任务 <span th:text="${task.id}">1</span></h1>
+    <div th:replace="~{layout :: messages}"></div>
+    <p class="hint" th:if="${refreshSeconds != null}">页面会自动刷新，等待投递结果。</p>
+    <section class="card">
+        <dl>
+            <dt>请求号</dt>
+            <dd th:text="${task.requestId}">req</dd>
+            <dt>供应商</dt>
+            <dd th:text="${task.targetSystem}">CRM</dd>
+            <dt>事件</dt>
+            <dd th:text="${task.eventType}">EVENT</dd>
+            <dt>优先级</dt>
+            <dd th:text="${task.priority}">1</dd>
+            <dt>状态</dt>
+            <dd><span th:replace="~{layout :: statusBadge(${task.status.name()})}">待投递</span></dd>
+            <dt>重试次数</dt>
+            <dd th:text="${task.retryCount}">0</dd>
+            <dt>下次重试</dt>
+            <dd th:text="${task.nextRetryTime == null} ? '-' : ${#temporals.format(task.nextRetryTime, 'yyyy-MM-dd HH:mm:ss')}">-</dd>
+            <dt>最近错误</dt>
+            <dd th:text="${task.lastError == null} ? '-' : ${task.lastError}">-</dd>
+            <dt>创建时间</dt>
+            <dd th:text="${#temporals.format(task.createdAt, 'yyyy-MM-dd HH:mm:ss')}">时间</dd>
+            <dt>更新时间</dt>
+            <dd th:text="${#temporals.format(task.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">时间</dd>
+        </dl>
+    </section>
+    <section class="card">
+        <h2>业务报文</h2>
+        <pre th:text="${task.payload}"></pre>
+        <h2>请求头</h2>
+        <pre th:text="${task.headers == null} ? '-' : ${task.headers}"></pre>
+    </section>
+    <form th:if="${task.status.name() == 'DEAD'}" method="post" th:action="@{/tasks/{id}/replay(id=${task.id})}">
+        <button type="submit">重放</button>
+    </form>
+    <p><a th:href="@{/tasks}">返回列表</a></p>
+</main>
+</body>
+</html>

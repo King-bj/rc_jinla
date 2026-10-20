@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('任务')}"></head>
+<body>
+<nav th:replace="~{layout :: nav}"></nav>
+<main>
+    <div class="page-head">
+        <h1>任务</h1>
+        <a class="button" th:href="@{/notifications/new}">手工提交</a>
+    </div>
+    <div th:replace="~{layout :: messages}"></div>
+    <form method="get" th:action="@{/tasks}" class="filters">
+        <label>状态
+            <select name="status">
+                <option value="">全部</option>
+                <option value="PENDING" th:selected="${status == 'PENDING'}">待投递</option>
+                <option value="SUCCESS" th:selected="${status == 'SUCCESS'}">成功</option>
+                <option value="FAILED" th:selected="${status == 'FAILED'}">失败重试</option>
+                <option value="DEAD" th:selected="${status == 'DEAD'}">死信</option>
+            </select>
+        </label>
+        <label>供应商
+            <select name="vendor">
+                <option value="">全部</option>
+                <option th:each="item : ${vendors}" th:value="${item.code}"
+                        th:text="${item.code + ' ' + item.name}"
+                        th:selected="${vendor == item.code}">CRM</option>
+            </select>
+        </label>
+        <label>请求号
+            <input type="text" name="requestId" th:value="${requestId}" placeholder="精确匹配"/>
+        </label>
+        <button type="submit">查询</button>
+    </form>
+    <p class="empty" th:if="${tasks.totalElements == 0}">还没有任务。<a th:href="@{/notifications/new}">去手工提交</a></p>
+    <table th:if="${tasks.totalElements > 0}">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>请求号</th>
+            <th>供应商</th>
+            <th>事件</th>
+            <th>状态</th>
+            <th>最近错误</th>
+            <th>重试</th>
+            <th>创建时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="task : ${tasks.content}">
+            <td><a th:href="@{/tasks/{id}(id=${task.id})}" th:text="${task.id}">1</a></td>
+            <td th:text="${task.requestId}">req</td>
+            <td th:text="${task.targetSystem}">CRM</td>
+            <td th:text="${task.eventType}">EVENT</td>
+            <td><span th:replace="~{layout :: statusBadge(${task.status.name()})}">待投递</span></td>
+            <td>
+                <span th:if="${task.lastError == null}">-</span>
+                <span th:if="${task.lastError != null}" th:text="${#strings.abbreviate(task.lastError, 48)}"
+                      th:title="${task.lastError}">error</span>
+            </td>
+            <td th:text="${task.retryCount}">0</td>
+            <td th:text="${#temporals.format(task.createdAt, 'yyyy-MM-dd HH:mm:ss')}">时间</td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="pager" th:if="${tasks.totalElements > 0}">
+        <a th:if="${tasks.hasPrevious()}"
+           th:href="@{/tasks(page=${tasks.number - 1}, status=${status}, vendor=${vendor}, requestId=${requestId})}">上一页</a>
+        <span th:text="'共 ' + ${tasks.totalElements} + ' 条'">共 0 条</span>
+        <a th:if="${tasks.hasNext()}"
+           th:href="@{/tasks(page=${tasks.number + 1}, status=${status}, vendor=${vendor}, requestId=${requestId})}">下一页</a>
+    </p>
+</main>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('供应商')}"></head>
+<body>
+<nav th:replace="~{layout :: nav}"></nav>
+<main>
+    <div class="page-head">
+        <h1>供应商</h1>
+        <a class="button" th:href="@{/vendors/new}">新建供应商</a>
+    </div>
+    <p class="empty" th:if="${#lists.isEmpty(vendors)}">还没有供应商。<a th:href="@{/vendors/new}">新建一个</a>，地址可先填本机 /mock/ 模拟接口。</p>
+    <table th:if="${!#lists.isEmpty(vendors)}">
+        <thead>
+        <tr>
+            <th>编码</th>
+            <th>名称</th>
+            <th>状态</th>
+            <th>方法</th>
+            <th>地址</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="vendor : ${vendors}">
+            <td><a th:href="@{/vendors/{code}(code=${vendor.code})}" th:text="${vendor.code}">CRM</a></td>
+            <td th:text="${vendor.name}">名称</td>
+            <td>
+                <span class="badge" th:classappend="${vendor.enabled} ? 'badge-on' : 'badge-off'"
+                      th:text="${vendor.enabled} ? '启用' : '停用'">启用</span>
+            </td>
+            <td th:text="${vendor.method}">POST</td>
+            <td class="url" th:text="${vendor.urlTemplate}" th:title="${vendor.urlTemplate}">http://example</td>
+            <td th:text="${vendor.updatedAt == null} ? '-' : ${#temporals.format(vendor.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">-</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

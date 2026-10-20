@@ -2,16 +2,17 @@ package com.notifyhub.dispatcher;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.notifyhub.acl.ConverterFactory;
 import com.notifyhub.acl.NotificationChannel;
-import com.notifyhub.acl.NotificationConverter;
 import com.notifyhub.acl.SendResult;
 import com.notifyhub.acl.VendorHttpRequest;
+import com.notifyhub.acl.VendorTemplateRenderer;
 import com.notifyhub.config.NotifyHubProperties;
 import com.notifyhub.domain.NotificationMessage;
 import com.notifyhub.domain.TaskStatus;
 import com.notifyhub.entity.NotificationTaskEntity;
+import com.notifyhub.entity.NotificationVendorEntity;
 import com.notifyhub.repository.NotificationTaskRepository;
+import com.notifyhub.repository.NotificationVendorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -34,20 +35,23 @@ public class NotificationDispatcher {
     private static final List<TaskStatus> READY_STATUSES = List.of(TaskStatus.PENDING, TaskStatus.FAILED);
 
     private final NotificationTaskRepository repository;
-    private final ConverterFactory converterFactory;
+    private final NotificationVendorRepository vendorRepository;
+    private final VendorTemplateRenderer renderer;
     private final NotificationChannel channel;
     private final NotifyHubProperties properties;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<NotificationDispatcher> selfProvider;
 
     public NotificationDispatcher(NotificationTaskRepository repository,
-                                  ConverterFactory converterFactory,
+                                  NotificationVendorRepository vendorRepository,
+                                  VendorTemplateRenderer renderer,
                                   NotificationChannel channel,
                                   NotifyHubProperties properties,
                                   ObjectMapper objectMapper,
                                   ObjectProvider<NotificationDispatcher> selfProvider) {
         this.repository = repository;
-        this.converterFactory = converterFactory;
+        this.vendorRepository = vendorRepository;
+        this.renderer = renderer;
         this.channel = channel;
         this.properties = properties;
         this.objectMapper = objectMapper;
@@ -82,9 +86,9 @@ public class NotificationDispatcher {
     @Transactional
     public void processTask(NotificationTaskEntity task) {
         NotificationMessage message = toMessage(task);
-        NotificationConverter converter = converterFactory.getConverter(task.getTargetSystem());
-
-        VendorHttpRequest request = converter.convert(message);
+        NotificationVendorEntity vendor = vendorRepository.findById(task.getTargetSystem())
+                .orElseThrow(() -> new IllegalStateException("vendor not found: " + task.getTargetSystem()));
+        VendorHttpRequest request = renderer.render(vendor, message);
         SendResult result = channel.send(request);
         LocalDateTime now = LocalDateTime.now();
         task.setUpdatedAt(now);

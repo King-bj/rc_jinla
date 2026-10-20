@@ -4,6 +4,7 @@ import com.notifyhub.domain.TaskStatus;
 import com.notifyhub.entity.NotificationTaskEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,7 +15,8 @@ import java.util.Optional;
 /**
  * 通知任务数据访问。
  */
-public interface NotificationTaskRepository extends JpaRepository<NotificationTaskEntity, Long> {
+public interface NotificationTaskRepository extends JpaRepository<NotificationTaskEntity, Long>,
+        JpaSpecificationExecutor<NotificationTaskEntity> {
 
     /** 按幂等键查询，用于接入层去重 */
     Optional<NotificationTaskEntity> findByRequestId(String requestId);

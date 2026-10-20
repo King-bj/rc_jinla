@@ -1,6 +1,5 @@
 package com.notifyhub.api.dto;
 
-import com.notifyhub.domain.TargetSystem;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,9 +12,9 @@ public class NotificationRequest {
     @NotBlank
     private String requestId;
 
-    /** 目标外部系统：CRM / AD / INVENTORY */
-    @NotNull
-    private TargetSystem targetSystem;
+    /** 供应商编码，对应已配置且启用的出口 */
+    @NotBlank
+    private String targetSystem;
 
     @NotBlank
     private String eventType;
@@ -38,11 +37,11 @@ public class NotificationRequest {
         this.requestId = requestId;
     }
 
-    public TargetSystem getTargetSystem() {
+    public String getTargetSystem() {
         return targetSystem;
     }
 
-    public void setTargetSystem(TargetSystem targetSystem) {
+    public void setTargetSystem(String targetSystem) {
         this.targetSystem = targetSystem;
     }
 

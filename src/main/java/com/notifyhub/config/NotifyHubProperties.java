@@ -1,6 +1,5 @@
 package com.notifyhub.config;
 
-import com.notifyhub.domain.TargetSystem;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -15,7 +14,10 @@ public class NotifyHubProperties {
     private Dispatcher dispatcher = new Dispatcher();
     /** 重试退避间隔（分钟），列表长度即最大重试次数 */
     private List<Integer> retryIntervalsMinutes = List.of(1, 5, 30, 60, 360);
-    /** 各渠道 baseUrl，key 为 crm / ad / inventory */
+    /**
+     * 首次启动时写入供应商种子的地址，key 为 crm / ad / inventory。
+     * 供应商表已有数据后，投递不再读取这里。
+     */
     private Map<String, ChannelConfig> channels = Map.of();
 
     public Dispatcher getDispatcher() {
@@ -40,15 +42,6 @@ public class NotifyHubProperties {
 
     public void setChannels(Map<String, ChannelConfig> channels) {
         this.channels = channels;
-    }
-
-    public String getChannelBaseUrl(TargetSystem targetSystem) {
-        String key = targetSystem.name().toLowerCase();
-        ChannelConfig config = channels.get(key);
-        if (config == null || config.getBaseUrl() == null) {
-            throw new IllegalStateException("Missing channel config for: " + key);
-        }
-        return config.getBaseUrl();
     }
 
     /** 调度器相关配置 */

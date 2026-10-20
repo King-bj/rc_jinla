@@ -1,6 +1,5 @@
 package com.notifyhub.entity;
 
-import com.notifyhub.domain.TargetSystem;
 import com.notifyhub.domain.TaskStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,9 +29,9 @@ public class NotificationTaskEntity {
     @Column(name = "request_id", nullable = false, length = 64)
     private String requestId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target_system", nullable = false, length = 32)
-    private TargetSystem targetSystem;
+    /** 供应商编码 */
+    @Column(name = "target_system", nullable = false, length = 64)
+    private String targetSystem;
 
     @Column(name = "event_type", nullable = false, length = 64)
     private String eventType;
@@ -85,11 +84,11 @@ public class NotificationTaskEntity {
         this.requestId = requestId;
     }
 
-    public TargetSystem getTargetSystem() {
+    public String getTargetSystem() {
         return targetSystem;
     }
 
-    public void setTargetSystem(TargetSystem targetSystem) {
+    public void setTargetSystem(String targetSystem) {
         this.targetSystem = targetSystem;
     }
 

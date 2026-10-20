@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('供应商配置')}"></head>
+<body>
+<nav th:replace="~{layout :: nav}"></nav>
+<main>
+    <h1 th:text="${creating} ? '新建供应商' : '编辑供应商'">供应商</h1>
+    <div th:replace="~{layout :: messages}"></div>
+    <form th:object="${form}" method="post" th:action="${creating} ? @{/vendors} : @{/vendors/{code}(code=${form.code})}">
+        <section class="card">
+            <h2>基本信息</h2>
+            <label>编码
+                <input type="text" th:field="*{code}" th:readonly="${!creating}" required="required"/>
+                <span class="field-help">创建后不能修改。只能使用字母、数字、下划线和短横线。</span>
+            </label>
+            <label>名称
+                <input type="text" th:field="*{name}" required="required"/>
+                <span class="field-help">显示在供应商列表和手工提交的下拉框里。</span>
+            </label>
+            <label class="check">
+                <input type="checkbox" th:field="*{enabled}"/>
+                启用
+            </label>
+            <span class="field-help">停用后不会出现在手工提交的供应商列表里。</span>
+        </section>
+        <section class="card">
+            <h2>请求模板</h2>
+            <label>方法
+                <select th:field="*{method}">
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+                <span class="field-help">发送时使用的 HTTP 方法。</span>
+            </label>
+            <label>地址
+                <input type="text" th:field="*{urlTemplate}" required="required"/>
+                <span class="field-help">可以写 {{eventType}}、{{requestId}}。本机模拟地址 http://127.0.0.1:8080/mock/ 下的任意路径都会返回成功。</span>
+            </label>
+            <label>请求头（JSON）
+                <textarea th:field="*{headersTemplate}" rows="4"></textarea>
+                <span class="field-help">JSON 对象，值里可以写占位符。留空则不附加请求头。</span>
+            </label>
+            <label>报文体
+                <textarea th:field="*{bodyTemplate}" rows="8" required="required"></textarea>
+                <span class="field-help">{{eventType}}、{{requestId}} 写在引号里；{{payload}} 插入整段 JSON；{{payload.字段}} 插入一个字段。</span>
+            </label>
+        </section>
+        <section class="card">
+            <h2>预览示例</h2>
+            <p class="field-help">只渲染报文，不发送请求。</p>
+            <label>事件类型
+                <input type="text" th:field="*{sampleEventType}"/>
+            </label>
+            <label>请求号
+                <input type="text" th:field="*{sampleRequestId}"/>
+            </label>
+            <label>示例报文
+                <textarea th:field="*{samplePayload}" rows="4"></textarea>
+                <span class="field-help">一段 JSON，用来替换模板里的占位符。</span>
+            </label>
+        </section>
+        <p class="actions">
+            <button type="submit">保存</button>
+            <button type="submit" class="secondary" th:formaction="@{/vendors/preview}">预览</button>
+        </p>
+    </form>
+    <section class="card" th:if="${preview != null}">
+        <h2>预览结果</h2>
+        <p class="request-line">
+            <span class="badge" th:text="${preview.method}">POST</span>
+            <code th:text="${preview.url}">http://example</code>
+        </p>
+        <h3>请求头</h3>
+        <ul th:if="${!preview.headers.isEmpty()}">
+            <li th:each="header : ${preview.headers}" th:text="${header.key + ': ' + header.value}">Content-Type: application/json</li>
+        </ul>
+        <p class="hint" th:if="${preview.headers.isEmpty()}">无</p>
+        <h3>报文体</h3>
+        <pre th:text="${preview.body}"></pre>
+    </section>
+</main>
+</body>
+</html>

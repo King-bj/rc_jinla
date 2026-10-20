@@ -2,7 +2,7 @@ package com.notifyhub.acl;
 
 import java.util.Map;
 
-/** 供应商 HTTP 请求描述，由 Converter 产出、Channel 消费。 */
+/** 供应商 HTTP 请求描述，由模板渲染产出、Channel 消费。 */
 public class VendorHttpRequest {
 
     private final String url;
